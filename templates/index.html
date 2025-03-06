@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AcadLedger - Certificate Verifier</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f4f8;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .tagline {
+            text-align: center;
+            color: #555;
+            font-style: italic;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #555;
+            margin-top: 20px;
+        }
+        form {
+            margin: 20px 0;
+        }
+        input[type="file"], input[type="text"] {
+            display: block;
+            margin-bottom: 10px;
+            width: 100%;
+            padding: 10px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #fafafa;
+            word-wrap: break-word;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+        .warning {
+            color: orange;
+        }
+        .hash {
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AcadLedge</h1>
+        <p class="tagline">Secure Certificate Verification Powered by AI</p>
+
+        <!-- Form to add a legit certificate -->
+        <form id="addForm">
+            <h2>Add Legit Certificate</h2>
+            <input type="text" name="wallet_address" placeholder="Your Wallet Address" required>
+            <input type="file" name="pdf" accept=".pdf" required>
+            <button type="submit">Add Certificate</button>
+            <div class="result" id="addResult"></div>
+        </form>
+
+        <!-- Form to verify a certificate -->
+        <form id="verifyForm">
+            <h2>Verify Certificate</h2>
+            <input type="file" name="pdf" accept=".pdf" required>
+            <button type="submit">Verify Certificate</button>
+            <div class="result" id="verifyResult"></div>
+        </form>
+    </div>
+
+    <script>
+        // Handle adding a certificate
+        document.getElementById("addForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const response = await fetch("/add_legit", { method: "POST", body: formData });
+            const result = await response.json();
+            const addResult = document.getElementById("addResult");
+            
+            if (result.status === "Added") {
+                addResult.innerHTML = `<span class="success">Certificate added successfully by ${result.issuer}! Hash: <span class="hash">${result.hash}</span></span>`;
+            } else if (result.status === "Similarity Detected") {
+                addResult.innerHTML = `<span class="warning">${result.message} (Similarity: ${result.similarity})</span>`;
+            } else if (result.status === "Conflict") {
+                addResult.innerHTML = `<span class="error">Error: ${result.message} Existing issuer: ${result.existing_issuer}</span>`;
+            } else if (result.status === "Already Exists") {
+                addResult.innerHTML = `Certificate already added by ${result.issuer} with hash: <span class="hash">${result.hash}</span>`;
+            } else {
+                addResult.innerHTML = `<span class="error">Error: ${result.error || result.message}</span>`;
+            }
+        });
+
+        // Handle verifying a certificate
+        document.getElementById("verifyForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const response = await fetch("/verify", { method: "POST", body: formData });
+            const result = await response.json();
+            const verifyResult = document.getElementById("verifyResult");
+            
+            if (result.status === "Verified") {
+                verifyResult.innerHTML = `<span class="success">Verified match from ${result.issuer} with hash: <span class="hash">${result.hash}</span> and similarity: ${result.similarity}</span>`;
+            } else if (result.status === "Possible Fraud") {
+                verifyResult.innerHTML = `<span class="warning">Possible Fraud! No hash match, but ${result.similarity} similar to ${result.issuer}'s certificate (hash: <span class="hash">${result.hash}</span>)</span>`;
+                alert(`Possible Fraud! No hash match, but ${result.similarity} similar to ${result.issuer}'s certificate.`);
+            } else {
+                verifyResult.innerHTML = `<span class="error">No hash match found. Unrecognized certificate (hash: <span class="hash">${result.hash}</span>)</span>`;
+                alert("Unrecognized certificate. No hash match found.");
+            }
+        });
+    </script>
+</body>
+</html>
