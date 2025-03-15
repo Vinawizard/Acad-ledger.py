@@ -7,8 +7,11 @@ from transformers import BertTokenizer, BertModel
 import pytesseract
 from PIL import Image
 from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS  # Add this import
 
 app = Flask(__name__)
+CORS(app)  # Add this line to enable CORS for all routes
+
 UPLOAD_FOLDER = "uploads"
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
@@ -57,6 +60,7 @@ def home():
 # Route to add a legitimate certificate
 @app.route("/add_legit", methods=["POST"])
 def add_legit():
+    print(legit_certificates)
     if "pdf" not in request.files or "wallet_address" not in request.form:
         return jsonify({"error": "PDF and wallet address required"})
     
@@ -112,11 +116,18 @@ def add_legit():
         "embedding": embedding,
         "issuer": wallet_address
     }
-    return jsonify({"status": "Added", "issuer": wallet_address, "hash": cert_hash})
+    return jsonify({
+        "status": "Added", 
+        "issuer": wallet_address, 
+        "hash": cert_hash, 
+        "embedding": embedding.tolist()  # Convert numpy array to list for JSON serialization
+    })
 
 # Route to verify a certificate
 @app.route("/verify", methods=["POST"])
 def verify():
+    print(legit_certificates)
+
     if "pdf" not in request.files:
         return jsonify({"error": "PDF required"})
     
