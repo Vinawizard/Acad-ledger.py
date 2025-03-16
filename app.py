@@ -60,7 +60,6 @@ def home():
 # Route to add a legitimate certificate
 @app.route("/add_legit", methods=["POST"])
 def add_legit():
-    print(legit_certificates)
     if "pdf" not in request.files or "wallet_address" not in request.form:
         return jsonify({"error": "PDF and wallet address required"})
     
@@ -107,6 +106,7 @@ def add_legit():
                 "similarity": f"{max_similarity:.2f}%",
                 "existing_issuer": closest_issuer,
                 "hash": cert_hash,
+                "embedding": embedding.tolist(),  # Convert numpy array to list for JSON serialization
                 "message": f"This certificate is {max_similarity:.2f}% similar to one issued by {closest_issuer}. Are you {closest_issuer}?"
             })
     
@@ -122,12 +122,9 @@ def add_legit():
         "hash": cert_hash, 
         "embedding": embedding.tolist()  # Convert numpy array to list for JSON serialization
     })
-
 # Route to verify a certificate
 @app.route("/verify", methods=["POST"])
 def verify():
-    print(legit_certificates)
-
     if "pdf" not in request.files:
         return jsonify({"error": "PDF required"})
     
